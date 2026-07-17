@@ -1,24 +1,46 @@
 {
   "expo": {
-    "name": "LoveSipsExpo",
+    "name": "LoveSips",
     "slug": "LoveSipsExpo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#050508",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "backgroundColor": "#050508",
+      "icon": "./assets/icon.png",
+      "bundleIdentifier": "com.raghav.lovesips"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#050510",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "package": "com.raghav.lovesips"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#050508"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "6068e1a3-bc5e-4dfa-a8d1-da1277cda519"
+      }
     }
   }
 }
