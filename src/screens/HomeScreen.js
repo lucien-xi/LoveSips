@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Dimensions, Easing, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Path, Rect, Defs, ClipPath, LinearGradient as SvgGrad, Stop, Line, G } from 'react-native-svg';
+import Svg, { Path, Rect, Defs, ClipPath, LinearGradient as SvgGrad, RadialGradient, Stop, Line, G, Circle } from 'react-native-svg';
 import Screen from '../components/Screen';
 import { C, FONT } from '../theme';
 import { useStore } from '../store';
@@ -41,7 +41,18 @@ export default function HomeScreen() {
         start={{ x: 0.15, y: 0 }} end={{ x: 0.85, y: 1 }}
         style={styles.headerCard}
       >
-        <View style={styles.headerGlow} />
+        <View style={styles.headerGlow} pointerEvents="none">
+          {/* radial-gradient(circle, rgba(168,85,247,0.22), transparent 65%) */}
+          <Svg width={200} height={200}>
+            <Defs>
+              <RadialGradient id="headerGlowGrad" cx="50%" cy="50%" r="50%">
+                <Stop offset="0%" stopColor="#A855F7" stopOpacity={0.22} />
+                <Stop offset="65%" stopColor="#A855F7" stopOpacity={0} />
+              </RadialGradient>
+            </Defs>
+            <Circle cx={100} cy={100} r={100} fill="url(#headerGlowGrad)" />
+          </Svg>
+        </View>
         <View style={styles.headerTop}>
           <View style={styles.headerText}>
             <Text style={styles.eyebrow}>{greetingText()}</Text>
@@ -113,7 +124,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 130 },
   headerCard: { borderRadius: 26, borderWidth: 1, borderColor: C.glassBorder, paddingHorizontal: 20, paddingTop: 22, paddingBottom: 18, overflow: 'hidden' },
-  headerGlow: { position: 'absolute', top: -90, right: -30, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(168,85,247,0.16)' },
+  headerGlow: { position: 'absolute', top: -90, right: -30, width: 200, height: 200 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14 },
   headerText: { flex: 1, minWidth: 0 },
   eyebrow: { fontFamily: FONT.body, fontSize: 13, color: C.cyan, opacity: 0.95 },

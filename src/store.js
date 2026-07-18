@@ -5,6 +5,7 @@ import {
   ACHIEVEMENTS, MILESTONE_HEART_VALUES, DAILY_COMPLETION_BONUS, STREAK7_BONUS, PERFECT_WEEK_BONUS,
 } from './data';
 import { haptic } from './haptics';
+import * as notif from './notifications';
 
 const STORAGE_KEY = 'hydrate_cosmic_v1';
 
@@ -164,6 +165,21 @@ export function StoreProvider({ children }) {
     return !!(d && d.amount >= s.goal);
   };
 
+  // Minimal snapshot the notification service plans from (see src/notifications).
+  const notifSnapshot = () => {
+    const t = todayStr();
+    const d = s.days[t];
+    return {
+      remindersOn: s.remindersOn,
+      interval: s.interval,
+      goalDone: !!(d && d.amount >= s.goal),
+      streak: s.streak,
+      lastCompletedDate: s.lastCompletedDate,
+      giftClaimedToday: s.lastDailyGiftDate === t,
+      name: s.name,
+    };
+  };
+
   function greetingText() {
     const h = new Date().getHours();
     if (h >= 5 && h < 12) return 'Good morning, my baby 💜';
@@ -214,6 +230,8 @@ export function StoreProvider({ children }) {
         s.vault.unshift({ date: todayStr(), milestone: m, note });
         awardMilestoneHearts(m);
         showReward(m, note);
+        // Push only fires when the app is backgrounded (gated inside).
+        notif.maybeNotifyMilestone(m, notifSnapshot());
       }
     });
   }
@@ -268,6 +286,7 @@ export function StoreProvider({ children }) {
     }
     haptic('light');
     saveRender();
+    notif.onGoalProgress(notifSnapshot()); // stop/adjust reminders as goal fills
   }
   function undo() {
     const d = ensureToday();
@@ -281,6 +300,7 @@ export function StoreProvider({ children }) {
     }
     d.milestones = d.milestones.filter((m) => d.amount >= s.goal * (m / 100));
     saveRender();
+    notif.onGoalProgress(notifSnapshot()); // goal may have re-opened → reschedule
   }
   function resetToday() {
     showConfirm("Reset today's water?", () => {
@@ -293,14 +313,30 @@ export function StoreProvider({ children }) {
 
   // ---------- settings ----------
   function setName(name) { s.name = name; saveRender(); }
-  function setGoal(goal) { s.goal = goal; saveRender(); }
-  function toggleReminders() { s.remindersOn = !s.remindersOn; saveRender(); }
-  function setInterval_(v) { s.interval = v; saveRender(); }
+  function setGoal(goal) { s.goal = goal; saveRender(); notif.syncNow(notifSnapshot()); }
+  async function toggleReminders() {
+    if (!s.remindersOn) {
+      // Turning ON for the first time: notifications need OS permission.
+      const status = await notif.ensurePermission();
+      if (status !== 'granted') {
+        showHeartsToast(0, status === 'blocked'
+          ? 'Notifications are blocked — enable LoveSips in your phone Settings 💜'
+          : 'No reminders then! Flip the toggle anytime you change your mind 💜');
+        saveRender(); // leave the toggle off
+        return;
+      }
+    }
+    s.remindersOn = !s.remindersOn;
+    saveRender();
+    notif.onToggle(notifSnapshot());
+  }
+  function setInterval_(v) { s.interval = v; saveRender(); notif.onIntervalChange(notifSnapshot()); }
   function resetAll() {
     showConfirm('This clears everything — her name, goal, streak, stars and history. Sure?', () => {
       stateRef.current = defaultState();
       persist();
       bump();
+      notif.syncNow(notifSnapshot()); // remindersOn is now false → cancels all
     });
   }
 
@@ -455,6 +491,7 @@ export function StoreProvider({ children }) {
     s.hearts += DAILY_GIFT_AMOUNT;
     showHeartsToast(DAILY_GIFT_AMOUNT, 'Daily Love Gift');
     saveRender();
+    notif.onGiftClaimed(notifSnapshot()); // cancels today's 9:30 gift reminder
   }
 
   // ---- golden ticket ----
@@ -507,6 +544,8 @@ export function StoreProvider({ children }) {
     shopOpen, setShopOpen, shopPanel, setShopPanel,
     showHeartsToast, showConfirm,
     navRef,
+    // notifications (App.js lifecycle wiring)
+    getNotifSnapshot: notifSnapshot,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

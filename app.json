@@ -28,6 +28,12 @@
     "plugins": [
       "expo-font",
       [
+        "expo-notifications",
+        {
+          "color": "#A855F7"
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, AppState } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
@@ -18,7 +18,7 @@ import {
 
 import { C } from './src/theme';
 import { StoreProvider, useStore } from './src/store';
-import { haptic } from './src/haptics';
+import * as notif from './src/notifications';
 import Nebula from './src/components/Nebula';
 import BottomNav from './src/components/BottomNav';
 import Overlays from './src/components/Overlays';
@@ -29,7 +29,7 @@ import OrbitScreen from './src/screens/OrbitScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 
 function Root() {
-  const { ready, navRef, setVaultBadge, s } = useStore();
+  const { ready, navRef, setVaultBadge, getNotifSnapshot } = useStore();
   const [screen, setScreen] = useState('home');
 
   const goToScreen = (name) => {
@@ -38,18 +38,18 @@ function Root() {
   };
   navRef.current = goToScreen;
 
-  // in-app reminder timer (ported from scheduleReminders — vibrates while below goal)
+  // Notification lifecycle: init once, sync schedules on every app open /
+  // return to foreground, and route notification taps to Home.
   useEffect(() => {
-    if (!ready || !s.remindersOn) return;
-    const id = setInterval(() => {
-      const now = new Date();
-      const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      const d = s.days[key];
-      if (d && d.amount >= s.goal) return;
-      haptic('medium');
-    }, s.interval * 60 * 1000);
-    return () => clearInterval(id);
-  }, [ready, s.remindersOn, s.interval, s.goal]);
+    if (!ready) return;
+    notif.init();
+    const detachNav = notif.attachNavigation(() => navRef.current && navRef.current('home'));
+    notif.onAppOpen(getNotifSnapshot());
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state === 'active') notif.onAppOpen(getNotifSnapshot());
+    });
+    return () => { detachNav(); appState.remove(); };
+  }, [ready]);
 
   if (!ready) {
     return (
